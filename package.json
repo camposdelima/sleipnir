@@ -1,0 +1,15 @@
+{
+  "name": "sleipnir",
+  "version": "1.0.0",
+  "description": "Automated trader",
+  "main": "app.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "cristiano.campos@outlook.com",
+  "license": "Apache License 2.0",
+  "dependencies": {
+    "eflex-intravenous": "^3.0.0",
+    "winston": "^2.4.0"
+  }
+}
