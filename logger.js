@@ -1,12 +1,18 @@
 (function() {
 
-    var Class =  class Logger {    
-        constructor () {}   
-    
-        listen () {
-            console.log( "now im a class.");
-        }
+    var Class = function factory(winston) {
+        return new winston.Logger({
+            transports: [
+                new winston.transports.Console(
+                    {
+                        'timestamp':true
+                        ,'level': 'debug'
+                    }
+                )
+            ]
+        });
     };
 
+    Class.$inject = ["winston"];
     module.exports = Class;
 })();

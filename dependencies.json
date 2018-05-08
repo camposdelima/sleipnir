@@ -1,4 +1,11 @@
 {
     "main": "./main"
-    ,"myDependency": "./myDependency"
-}
+    ,"pairTrader": "./trader"
+    ,"logger": "./logger"
+    ,"timer": "./timer"
+    ,"exchangeBuilder": "./exchange/papertrade/exchangeBuilder"
+    ,"exchange": "./exchange/papertrade/exchange"    
+    ,"winston": "winston"
+    ,"ccxt": "ccxt"
+    ,"calendar": "moment"
+}   

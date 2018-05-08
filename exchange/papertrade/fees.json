@@ -1,0 +1,7 @@
+{
+  "trading": {
+    "percentage": true,
+    "taker": 0.002,
+    "maker": 0.001
+  }
+} 
