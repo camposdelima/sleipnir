@@ -3,9 +3,9 @@
         // const symbol ='BTC/USD';
         const delay = 5000;
 
-		var Class =  class PairTrader {            
+		var Class =  class PairTrader {
             constructor(logger, exchangeBuilder, timer, calendarFactory, exchangeName, symbol, currencyAvailable) {
-                this.logger = logger;                
+                this.logger = logger;
                 this.exchange =  exchangeBuilder.build(exchangeName);
                 this.timer = timer;
                 // this.calendarFactory = calendarFactory;
@@ -32,12 +32,12 @@
 
             async getLastPrice() {
                 var ticker = await this.exchange.fetchTicker(this.symbol);
-                return ticker.last;
+                return 10000;//ticker.last;
             }
 
 
-            async getFees() {   
-                var fees = await this.exchange.getFees();                                
+            async getFees() {
+                var fees = await this.exchange.getFees();
                 return fees;
             }
 
@@ -73,45 +73,70 @@
             }
 
             async buy(assetAmount) {
+                if(assetAmount < 0)
+                    throw new Error("Trying buy negative quantity.");
                 //BUYL
-                var price = await this.getLastPrice();
-                this.exchange.createLimitBuyOrder(this.symbol, assetAmount, price);
-                
-                // var actualAssetAmount = await this.extractFees(assetAmount);
-                var assetAmountWithFees = await this.includeFees(assetAmount);
-                var cost = assetAmountWithFees * price;
-                
-                
-                // var actualAssetAmount = await this.extractFees(assetAmount);
+                let price = await this.getLastPrice();
+                let cost = await this.calculateCost(assetAmount, price);
 
-                this.portfolio.currency-= cost;
-                this.portfolio.asset += assetAmount;
+                this.applyBuyOrder(assetAmount, price);
+
+                this.applyBuyCustody(cost, price);
+
                 await this.updatePortfolio();
             }
 
-            async sell(assetAmount) {    
-                var price = await this.getLastPrice();
+            applyBuyOrder(assetAmount, price) {
+                this.exchange.createLimitBuyOrder(this.symbol, assetAmount, price);
+                this.portfolio.asset += assetAmount;
+            }
 
-                this.exchange.createLimitSellOrder(this.symbol, assetAmount, price);
-                
-                var actualAssetAmount = await this.subtractFees(assetAmount);
-                var revenue = actualAssetAmount * price;
-                
-                this.portfolio.asset -= assetAmount;
-                
+            applyBuyCustody(cost, price) {
+                let custody =  this.portfolio.custody || 0;
+                let actualCost = cost - custody;
+                this.portfolio.currency -= actualCost;
+                this.portfolio.custody -= cost;
+                //calcular diferenca aqui
+            }
 
-                var custody = this.calculateCustody(price);
-                revenue -= custody;
-                this.portfolio.custody = custody;
-                this.portfolio.currency += revenue;
+            async calculateCost(assetAmount, price) {
+                let assetAmountWithFees = await this.includeFees(assetAmount);
+                return assetAmountWithFees * price;
+            }
 
+            async sell(assetAmount) {
+                if(assetAmount < 0)
+                    throw new Error("Trying sell negative quantity.")
+
+                let price = await this.getLastPrice();
+                let revenue = await this.calculateRevenue(assetAmount, price);
+
+                this.applySellOrder(assetAmount, price);
+                this.applyCustody(revenue, price);
 
                 await this.updatePortfolio();
+            }
+
+            applySellOrder(assetAmount, price) {
+                this.exchange.createLimitSellOrder(this.symbol, assetAmount, price);
+                this.portfolio.asset -= assetAmount;
+            }
+
+            applyCustody(revenue, price) {
+                let custody = this.calculateCustody(price);
+                let actualRevenue = revenue - custody;
+                this.portfolio.custody = custody;
+                this.portfolio.currency += actualRevenue;
+            }
+
+            async calculateRevenue(assetAmount, price) {
+                var actualAssetAmount = await this.subtractFees(assetAmount);
+                return actualAssetAmount * price;
             }
 
             calculateCustody(price) {
                 var hasCustody = this.portfolio.asset < 0;
-                
+
                 if(!hasCustody) {
                     return 0;
                 }
@@ -132,10 +157,10 @@
 
 
             async updatePortfolio() {
-                this.logger.info(await this.getPortfolio());   
+                this.logger.info(await this.getPortfolio());
             }
 		};
-  
+
         Class.$inject = [   "logger", "exchangeBuilder", "timer",
                             "calendarFactory", "exchangeName",
                             "symbol", "currencyAvailable"

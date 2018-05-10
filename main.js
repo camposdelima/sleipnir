@@ -2,7 +2,7 @@
         const symbol = "BTC/USD";
         const exchangeName = "bitfinex";
 
-		var Class =  class Main {            
+		var Class =  class Main {
             constructor(logger, pairTraderFactory) {
                 this.logger = logger;
                 this.trader = pairTraderFactory
@@ -23,21 +23,21 @@
                 // console.log(price);
                 // if(price > 12000)
                 //     trader.buy(1);
-                
-                console.log(await trader.getPortfolio());   
-                // console.log(await trader.getFees());   
-                
+
+                console.log(await trader.getPortfolio());
+                // console.log(await trader.getFees());
+
 
                 // await trader.sell(10);
                 // await trader.close();
                 await trader.buy(10);
-                // await trader.sell(20);
+                await trader.sell(20);
                 // await trader.close();
-                // await trader.buy(10);
+                await trader.buy(10);
                 // await trader.close();
             }
 		};
-    
+
         Class.$inject = ["logger", "pairTraderFactory"];
 		module.exports = Class;
 })();

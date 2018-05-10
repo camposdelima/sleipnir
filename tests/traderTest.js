@@ -21,28 +21,42 @@ var currencyAvailable = 1000;
 
 describe('Trader', function() {
   var trader = null;
-  
+
   beforeEach(function() {
     trader = new Trader(Logger, ExchangeBuilder, null, null, null, Symbol,currencyAvailable);
   });
 
-  it('should have currency available', async function() {    
+  it('should have currency available', async function() {
     expect(trader.portfolio.currency).to.eq(currencyAvailable);
   });
-  
-  it('should buy', async function() {   
+
+  it('should buy', async function() {
       expect((await trader.getPortfolio()).asset).to.eq(0);
       await trader.buy(10);
-      expect((await trader.getPortfolio()).asset).to.at.above(0);
+      expect((await trader.getPortfolio()).asset).to.eq(10);
   });
 
-  it('should close buy', async function() { 
+  it('should close buy', async function() {
     expect((await trader.getPortfolio()).asset).to.eq(0);
     await trader.buy(10);
-    expect((await trader.getPortfolio()).asset).to.at.above(0);
-    await trader.sell(trader.portfolio.asset);
+    expect((await trader.getPortfolio()).asset).to.eq(10);
+    await trader.close();    
     expect((await trader.getPortfolio()).asset).to.eq(0);
   });
+
+  it('should sell', async function() {
+      expect((await trader.getPortfolio()).asset).to.eq(0);
+      await trader.sell(10);
+      expect((await trader.getPortfolio()).asset).to.eq(-10);
+  });
+
+  // it('should close sell', async function() {
+  //   expect((await trader.getPortfolio()).asset).to.eq(0);
+  //   await trader.sell(10);
+  //   expect((await trader.getPortfolio()).asset).to.eq(-10);
+  //   await trader.buy(trader.portfolio.asset);
+  //   expect((await trader.getPortfolio()).asset).to.eq(0);
+  // });
 
 
 });

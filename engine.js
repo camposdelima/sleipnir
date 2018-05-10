@@ -21,6 +21,7 @@
             }
 
             execute(executableDependencyName) {
+				this.container.get("logger").info("starting "+executableDependencyName);
                 this.container.get(executableDependencyName).execute();
             }
         };
