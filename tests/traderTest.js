@@ -40,7 +40,7 @@ describe('Trader', function() {
     expect((await trader.getPortfolio()).asset).to.eq(0);
     await trader.buy(10);
     expect((await trader.getPortfolio()).asset).to.eq(10);
-    await trader.close();    
+    await trader.close();
     expect((await trader.getPortfolio()).asset).to.eq(0);
   });
 
@@ -50,13 +50,13 @@ describe('Trader', function() {
       expect((await trader.getPortfolio()).asset).to.eq(-10);
   });
 
-  // it('should close sell', async function() {
-  //   expect((await trader.getPortfolio()).asset).to.eq(0);
-  //   await trader.sell(10);
-  //   expect((await trader.getPortfolio()).asset).to.eq(-10);
-  //   await trader.buy(trader.portfolio.asset);
-  //   expect((await trader.getPortfolio()).asset).to.eq(0);
-  // });
+  it('should close sell', async function() {
+    expect((await trader.getPortfolio()).asset).to.eq(0);
+    await trader.sell(10);
+    expect((await trader.getPortfolio()).asset).to.eq(-10);
+    await trader.buy(trader.portfolio.asset);
+    expect((await trader.getPortfolio()).asset).to.eq(0);
+  });
 
 
 });

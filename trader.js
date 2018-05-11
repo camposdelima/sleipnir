@@ -13,7 +13,9 @@
                 this.portfolio = {
                     'currency': currencyAvailable
                     ,'asset' : 0
+                    ,'custody': 0
                 };
+                this.totalVolume = 0;
             }
 
             // async watch(callback) {
@@ -43,7 +45,6 @@
 
             async calculateFees(desiredAmount) {
                 var fees = await this.getFees();
-                console.log(fees);
                 var feeValue = fees.trading.maker;
                 var feesAmount = desiredAmount * feeValue;
 
@@ -72,6 +73,7 @@
                 return rawAmount;
             }
 
+
             async buy(assetAmount) {
                 if(assetAmount < 0)
                     throw new Error("Trying buy negative quantity.");
@@ -89,13 +91,20 @@
             applyBuyOrder(assetAmount, price) {
                 this.exchange.createLimitBuyOrder(this.symbol, assetAmount, price);
                 this.portfolio.asset += assetAmount;
+                this.totalVolume += assetAmount;
             }
 
-            applyBuyCustody(cost, price) {
-                let custody =  this.portfolio.custody || 0;
-                let actualCost = cost - custody;
-                this.portfolio.currency -= actualCost;
-                this.portfolio.custody -= cost;
+            applyBuyCustody(cost) {
+                if(this.portfolio.custody > 0) {
+                    this.portfolio.custody -= cost;
+
+                    if(this.portfolio.custody < 0) {
+                        this.portfolio.currency += this.portfolio.custody;
+                        this.portfolio.custody = 0;
+                    }
+                } else
+                    this.portfolio.currency -= cost;
+
                 //calcular diferenca aqui
             }
 
@@ -103,6 +112,7 @@
                 let assetAmountWithFees = await this.includeFees(assetAmount);
                 return assetAmountWithFees * price;
             }
+
 
             async sell(assetAmount) {
                 if(assetAmount < 0)
@@ -112,7 +122,7 @@
                 let revenue = await this.calculateRevenue(assetAmount, price);
 
                 this.applySellOrder(assetAmount, price);
-                this.applyCustody(revenue, price);
+                this.applyCustody(revenue, price, assetAmount);
 
                 await this.updatePortfolio();
             }
@@ -120,12 +130,13 @@
             applySellOrder(assetAmount, price) {
                 this.exchange.createLimitSellOrder(this.symbol, assetAmount, price);
                 this.portfolio.asset -= assetAmount;
+                this.totalVolume += assetAmount;
             }
 
-            applyCustody(revenue, price) {
-                let custody = this.calculateCustody(price);
+            applyCustody(revenue, price, assetAmount,) {
+                let custody = this.calculateCustody(price, assetAmount);
                 let actualRevenue = revenue - custody;
-                this.portfolio.custody = custody;
+                this.portfolio.custody += custody;
                 this.portfolio.currency += actualRevenue;
             }
 
@@ -134,15 +145,16 @@
                 return actualAssetAmount * price;
             }
 
-            calculateCustody(price) {
+            calculateCustody(price, assetAmount) {
                 var hasCustody = this.portfolio.asset < 0;
-
+//olha aqui
                 if(!hasCustody) {
                     return 0;
                 }
+                //ja calculei
 
-                var custody = Math.abs(this.portfolio.asset * price);
-                return (this.portfolio.custody || 0 )+ custody;
+                var custody = Math.abs((assetAmount+this.portfolio.asset) * price);
+                return custody;
             }
 
             async close() {
