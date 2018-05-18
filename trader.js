@@ -121,8 +121,8 @@
                 let price = await this.getLastPrice();
                 let revenue = await this.calculateRevenue(assetAmount, price);
 
-                this.applySellOrder(assetAmount, price);
                 this.applyCustody(revenue, price, assetAmount);
+                this.applySellOrder(assetAmount, price);
 
                 await this.updatePortfolio();
             }
@@ -133,10 +133,11 @@
                 this.totalVolume += assetAmount;
             }
 
-            applyCustody(revenue, price, assetAmount,) {
-                let custody = this.calculateCustody(price, assetAmount);
-                let actualRevenue = revenue - custody;
-                this.portfolio.custody += custody;
+            applyCustody(revenue, price, assetAmount) {
+                let currentCustody = this.calculateCurrentCustody(price, assetAmount);
+
+                let actualRevenue = revenue - currentCustody;
+                this.portfolio.custody += currentCustody;
                 this.portfolio.currency += actualRevenue;
             }
 
@@ -145,15 +146,20 @@
                 return actualAssetAmount * price;
             }
 
-            calculateCustody(price, assetAmount) {
-                var hasCustody = this.portfolio.asset < 0;
-//olha aqui
+            calculateCurrentCustody(price, assetAmount) {
+                var currentAsset = this.portfolio.asset-assetAmount;
+
+                var hasCustody = currentAsset < 0;
+
                 if(!hasCustody) {
                     return 0;
                 }
-                //ja calculei
 
-                var custody = Math.abs((assetAmount+this.portfolio.asset) * price);
+                //console.log({'current': this.portfolio.asset, 'sellAmount': assetAmount, 'loan': loanAssets, 'thatCustody': currentAsset-assetAmount } );
+                var loanAssets = (this.portfolio.asset < 0)?currentAsset+assetAmount:currentAsset;
+
+
+                var custody = Math.abs(loanAssets * price);
                 return custody;
             }
 
