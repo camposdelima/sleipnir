@@ -3,7 +3,7 @@
         const symbol ='BTC/USD';
         const delay = 5000;
 
-		var Class =  class Main {            
+		var Class =  class VolumeWatcher {            
             constructor(logger, exchangeBuilder, timer, calendarFactory) {
                 this.logger = logger;   
                 this.exchange =  exchangeBuilder.build(exchangeName);

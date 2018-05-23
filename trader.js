@@ -1,6 +1,4 @@
     (function() {
-        // const exchangeName = 'bitfinex';
-        // const symbol ='BTC/USD';
         const delay = 5000;
 
 		var Class =  class PairTrader {
@@ -8,7 +6,6 @@
                 this.logger = logger;
                 this.exchange =  exchangeBuilder.build(exchangeName);
                 this.timer = timer;
-                // this.calendarFactory = calendarFactory;
                 this.symbol = symbol;
                 this.portfolio = {
                     'currency': currencyAvailable
@@ -18,42 +15,33 @@
                 this.totalVolume = 0;
             }
 
-            // async watch(callback) {
-            //     callback(this);
-            //     // this.timer.scheduleLoop(delay, () => callback(this));
-            // //    var balance = await this.exchange.fetchBalance();
-
-            // //     console.log(balance);
-            //     // this.logger.debug({'price': ticker.last});
-
-            // }
-
             async getPortfolio() {
                 return this.portfolio;
             }
 
             async getLastPrice() {
-                var ticker = await this.exchange.fetchTicker(this.symbol);
-                return 10000;//ticker.last;
+                let ticker = await this.exchange.fetchTicker(this.symbol);
+                // this.a = this.a - 100 || 10000;
+                return ticker.last;
             }
 
 
             async getFees() {
-                var fees = await this.exchange.getFees();
+                let fees = await this.exchange.getFees();
                 return fees;
             }
 
             async calculateFees(desiredAmount) {
-                var fees = await this.getFees();
-                var feeValue = fees.trading.maker;
-                var feesAmount = desiredAmount * feeValue;
+                let fees = await this.getFees();
+                let feeValue = fees.trading.maker;
+                let feesAmount = desiredAmount * feeValue;
 
                 return feesAmount;
             }
 
             async subtractFees(desiredAmount) {
-                var feesAmount = await this.calculateFees(desiredAmount);
-                var netAmount = desiredAmount-feesAmount;
+                let feesAmount = await this.calculateFees(desiredAmount);
+                let netAmount = desiredAmount-feesAmount;
                 this.logger.debug({
                     "desiredAmount": desiredAmount,
                     "netAmount": netAmount.toFixed(9),
@@ -63,8 +51,8 @@
             }
 
             async includeFees(desiredAmount) {
-                var feesAmount = await this.calculateFees(desiredAmount);
-                var rawAmount = desiredAmount+feesAmount;
+                let feesAmount = await this.calculateFees(desiredAmount);
+                let rawAmount = desiredAmount+feesAmount;
                 this.logger.debug({
                     "desiredAmount": desiredAmount,
                     "rawAmount": rawAmount.toFixed(9),
@@ -75,15 +63,13 @@
 
 
             async buy(assetAmount) {
-                if(assetAmount < 0)
-                    throw new Error("Trying buy negative quantity.");
-                //BUYL
+                this.checkAssetAmount(assetAmount);
+
                 let price = await this.getLastPrice();
                 let cost = await this.calculateCost(assetAmount, price);
 
                 this.applyBuyOrder(assetAmount, price);
-
-                this.applyBuyCustody(cost, price);
+                this.bill(cost);
 
                 await this.updatePortfolio();
             }
@@ -94,18 +80,24 @@
                 this.totalVolume += assetAmount;
             }
 
-            applyBuyCustody(cost) {
-                if(this.portfolio.custody > 0) {
-                    this.portfolio.custody -= cost;
+            bill(cost) {
 
-                    if(this.portfolio.custody < 0) {
-                        this.portfolio.currency += this.portfolio.custody;
-                        this.portfolio.custody = 0;
-                    }
-                } else
-                    this.portfolio.currency -= cost;
+                if(this.hasCustody()) {
+                   this.applyCustodyCredited(cost);
+                   return;
+                }
 
-                //calcular diferenca aqui
+                this.portfolio.currency -= cost;
+            }
+
+            applyCustodyCredited(cost) {
+                this.portfolio.custody -= cost;
+                
+                if(this.hasCustody() && this.portfolio.asset < 0)
+                    return;
+                
+                this.portfolio.currency += this.portfolio.custody;
+                this.portfolio.custody = 0;
             }
 
             async calculateCost(assetAmount, price) {
@@ -115,13 +107,12 @@
 
 
             async sell(assetAmount) {
-                if(assetAmount < 0)
-                    throw new Error("Trying sell negative quantity.")
+                this.checkAssetAmount(assetAmount);
 
                 let price = await this.getLastPrice();
                 let revenue = await this.calculateRevenue(assetAmount, price);
 
-                this.applyCustody(revenue, price, assetAmount);
+                this.applySellBill(revenue, price, assetAmount);
                 this.applySellOrder(assetAmount, price);
 
                 await this.updatePortfolio();
@@ -133,46 +124,62 @@
                 this.totalVolume += assetAmount;
             }
 
-            applyCustody(revenue, price, assetAmount) {
-                let currentCustody = this.calculateCurrentCustody(price, assetAmount);
+            applySellBill(revenue, price, assetAmount) {
+                let custodyDebited = this.calculateCustodyDebited(price, assetAmount);
 
-                let actualRevenue = revenue - currentCustody;
-                this.portfolio.custody += currentCustody;
+                let actualRevenue = revenue - custodyDebited;
+                this.portfolio.custody += custodyDebited;
                 this.portfolio.currency += actualRevenue;
             }
 
             async calculateRevenue(assetAmount, price) {
-                var actualAssetAmount = await this.subtractFees(assetAmount);
+                let actualAssetAmount = await this.subtractFees(assetAmount);
                 return actualAssetAmount * price;
             }
 
-            calculateCurrentCustody(price, assetAmount) {
-                var currentAsset = this.portfolio.asset-assetAmount;
+            calculateCustodyDebited(price, assetAmount) {
+                let netAsset = this.portfolio.asset-assetAmount;
 
-                var hasCustody = currentAsset < 0;
+                let isAssetLoan = netAsset < 0;
 
-                if(!hasCustody) {
+                if(!isAssetLoan) 
                     return 0;
-                }
 
-                //console.log({'current': this.portfolio.asset, 'sellAmount': assetAmount, 'loan': loanAssets, 'thatCustody': currentAsset-assetAmount } );
-                var loanAssets = (this.portfolio.asset < 0)?currentAsset+assetAmount:currentAsset;
+                let loanAmount = this.calculateLoanAmount(netAsset);
+                let custodyDebited = Math.abs(loanAmount * price);
+                return custodyDebited;
+            }
 
-
-                var custody = Math.abs(loanAssets * price);
-                return custody;
+            calculateLoanAmount(netAsset) {                
+                let hasLoan = this.portfolio.asset < 0;
+                if(hasLoan)
+                    return netAsset - this.portfolio.asset
+                else
+                    return netAsset;
             }
 
             async close() {
-                var isLong = this.portfolio.asset > 0;
-                var assetAmount = Math.abs(this.portfolio.asset);
+                let assetAmount = Math.abs(this.portfolio.asset);
+                this.checkAssetAmount(assetAmount);
 
-                if(isLong)
-                    this.sell(assetAmount);
+                if(this.isLong())
+                    await this.sell(assetAmount);
                 else
-                    this.buy(assetAmount);
+                    await this.buy(assetAmount);
             }
 
+            checkAssetAmount(assetAmount) {
+                if(assetAmount <= 0)
+                    throw new Error("Trying trade invalid quantity: "+assetAmount.toString()+".");
+            }
+        
+            hasCustody() {
+                return this.portfolio.custody > 0;
+            }
+
+            isLong() {
+                return this.portfolio.asset > 0;
+            }
 
             async updatePortfolio() {
                 this.logger.info(await this.getPortfolio());

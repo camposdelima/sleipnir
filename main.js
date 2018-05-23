@@ -15,10 +15,17 @@
             execute() {
             //IExecutable
                 // this.trader.watch(this.check);
-                this.check(this.trader);
+                this.check(this.trader, this.portfolioComparer);
             }
 
-            async check(trader) {
+            async check(trader, comparer) {
+                let portfolio = await trader.getPortfolio();
+                let portfolioB = {...portfolio};
+                
+                portfolioB.currency+= 5000;
+                comparer.compare(portfolio, portfolioB);
+                
+                return;
                 // var price = await trader.getLastPrice();
                 // console.log(price);
                 // if(price > 12000)
@@ -26,7 +33,6 @@
 
                 console.log(await trader.getPortfolio());
                 // console.log(await trader.getFees());
-
 
                 // await trader.sell(10);
                 // await trader.close();
@@ -42,7 +48,7 @@
                 await trader.sell(10);
                 await trader.buy(5);
                 await trader.sell(5);
-                await trader.sell(5);
+                await trader.sell(7);
 
                 console.log(trader.totalVolume);
                 // await trader.close();
@@ -51,4 +57,4 @@
 
         Class.$inject = ["logger", "pairTraderFactory"];
 		module.exports = Class;
-})();
+})();   
