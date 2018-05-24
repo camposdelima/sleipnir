@@ -3,35 +3,30 @@
         const exchangeName = "bitfinex";
 
 		var Class =  class Main {
-            constructor(logger, pairTraderFactory) {
+            constructor(logger, pairTraderFactory, performanceAnalyzerFactory) {
                 this.logger = logger;
                 this.trader = pairTraderFactory
                     .use("exchangeName", exchangeName)
                     .use("symbol", symbol)
                     .use("currencyAvailable", 100000)//968)
                     .get();
+
+                this.performanceAnalyzer = performanceAnalyzerFactory
+                    .use("trader", this.trader)
+                    .get();
             }
 
             execute() {
             //IExecutable
                 // this.trader.watch(this.check);
-                this.check(this.trader, this.portfolioComparer);
+                this.check(this.trader);
             }
 
-            async check(trader, comparer) {
-                let portfolio = await trader.getPortfolio();
-                let portfolioB = {...portfolio};
-                
-                portfolioB.currency+= 5000;
-                comparer.compare(portfolio, portfolioB);
-                
-                return;
+            async check(trader) {
                 // var price = await trader.getLastPrice();
                 // console.log(price);
                 // if(price > 12000)
                 //     trader.buy(1);
-
-                console.log(await trader.getPortfolio());
                 // console.log(await trader.getFees());
 
                 // await trader.sell(10);
@@ -50,11 +45,11 @@
                 await trader.sell(5);
                 await trader.sell(7);
 
-                console.log(trader.totalVolume);
+                this.performanceAnalyzer.evaluate();
                 // await trader.close();
             }
 		};
 
-        Class.$inject = ["logger", "pairTraderFactory"];
+        Class.$inject = ["logger", "pairTraderFactory", "performanceAnalyzerFactory"];
 		module.exports = Class;
-})();   
+})();

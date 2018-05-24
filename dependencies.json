@@ -1,11 +1,12 @@
 {
     "main": "./main"
     ,"pairTrader": "./trader"
+    ,"performanceAnalyzer": "./performanceAnalyzer"
     ,"logger": "./logger"
     ,"timer": "./timer"
     ,"exchangeBuilder": "./exchange/papertrade/exchangeBuilder"
-    ,"exchange": "./exchange/papertrade/exchange"    
+    ,"exchange": "./exchange/papertrade/exchange"
     ,"winston": "winston"
     ,"ccxt": "ccxt"
     ,"calendar": "moment"
-}   
+}
