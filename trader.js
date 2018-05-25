@@ -13,16 +13,26 @@
                     ,'custody': 0
                 };
                 this.totalVolume = 0;
+                this.orders = {
+                    'buy': 0,
+                    'sell': 0
+                }
             }
 
             async getPortfolio() {
-                return this.portfolio;
+                return { ...this.portfolio,
+                    assetEvaluation: await this.evaluateAssetAmount( this.portfolio.asset ),
+                };
             }
 
             async getLastPrice() {
                 let ticker = await this.exchange.fetchTicker(this.symbol);
-                // this.a = this.a - 100 || 10000;
                 return ticker.last;
+            }
+
+            async evaluateAssetAmount(assetAmount) {
+                let price = await this.getLastPrice();
+                return assetAmount * price;
             }
 
 
@@ -78,6 +88,7 @@
                 this.exchange.createLimitBuyOrder(this.symbol, assetAmount, price);
                 this.portfolio.asset += assetAmount;
                 this.totalVolume += assetAmount;
+                this.orders.buy++;
             }
 
             bill(cost) {
@@ -92,10 +103,10 @@
 
             applyCustodyCredited(cost) {
                 this.portfolio.custody -= cost;
-                
+
                 if(this.hasCustody() && this.portfolio.asset < 0)
                     return;
-                
+
                 this.portfolio.currency += this.portfolio.custody;
                 this.portfolio.custody = 0;
             }
@@ -122,6 +133,7 @@
                 this.exchange.createLimitSellOrder(this.symbol, assetAmount, price);
                 this.portfolio.asset -= assetAmount;
                 this.totalVolume += assetAmount;
+                this.orders.sell++;
             }
 
             applySellBill(revenue, price, assetAmount) {
@@ -142,7 +154,7 @@
 
                 let isAssetLoan = netAsset < 0;
 
-                if(!isAssetLoan) 
+                if(!isAssetLoan)
                     return 0;
 
                 let loanAmount = this.calculateLoanAmount(netAsset);
@@ -150,7 +162,7 @@
                 return custodyDebited;
             }
 
-            calculateLoanAmount(netAsset) {                
+            calculateLoanAmount(netAsset) {
                 let hasLoan = this.portfolio.asset < 0;
                 if(hasLoan)
                     return netAsset - this.portfolio.asset
@@ -172,7 +184,7 @@
                 if(assetAmount <= 0)
                     throw new Error("Trying trade invalid quantity: "+assetAmount.toString()+".");
             }
-        
+
             hasCustody() {
                 return this.portfolio.custody > 0;
             }

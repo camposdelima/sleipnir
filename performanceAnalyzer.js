@@ -5,36 +5,47 @@
                 this.logger = logger;
 				this.trader = trader;
 				this.calendarFactory = calendarFactory;
-				this.result = {}
+				this.evaluation = {}
 				this.evaluate();
             }
 
 			async evaluate() {
-				var portfolio = await this.trader.getPortfolio();
-				var currency = portfolio.currency;
-				var asset = portfolio.asset * 10;
-				var balance = asset+currency;
+				let totalVolume = this.trader.totalVolume;
+				let totalOrders = this.trader.orders.sell + this.trader.orders.buy;
+				let portfolio = await this.trader.getPortfolio();
+				let realized = portfolio.currency;
+				let unrealized = portfolio.custody + portfolio.assetEvaluation;
 
-				this.result.startTime = this.result.startTime || this.calendarFactory.get();
-				this.result.startBalance = this.result.startBalance || balance;
+				let balance = realized+unrealized;
+				let currentTime = this.calendarFactory.get().format();
 
-				this.result = {
-					'assetBalance': asset,
-					'endTime': this.calendarFactory.get().format(),
+
+				this.evaluation.startTime = this.evaluation.startTime || currentTime;
+				this.evaluation.startBalance = this.evaluation.startBalance || balance;
+
+				this.evaluation = {... this.evaluation,
+					'totalVolume': totalVolume,
+					'totalOrders': totalOrders,
+					'endTime': currentTime,
 					'finalBalance': balance,
-					'currency': currency,
-					'assetBalance': asset,
-					'return': balance - this.startBalance,
-					'rate': ((balance / this.startBalance) - 1).toFixed(2)
+					'realized': realized,
+					'unrealized': unrealized,
+					'return': (balance - this.evaluation.startBalance),
+					'rate': ((balance / this.evaluation.startBalance) - 1)
 				};
 
-				this.logger.info({
-					balance: this.result.finalBalance,
-					return: this.result.return,
-					rate: this.result.rate
-				});
+				//this.logger.debug(this.evaluation);;
+			}
 
-				return this.result;
+			async getEvaluation() {
+				await this.evaluate();
+				return { ...this.evaluation,
+					'realized': this.evaluation.realized.toFixed(2),
+					'unrealized': this.evaluation.unrealized.toFixed(2),
+					'return': this.evaluation.return.toFixed(2),
+					'rate': this.evaluation.rate.toFixed(2),
+					'rate%': (this.evaluation.rate * 100).toFixed(2) + '%'
+				};
 			}
 		};
 

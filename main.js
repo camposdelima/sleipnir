@@ -23,14 +23,6 @@
             }
 
             async check(trader) {
-                // var price = await trader.getLastPrice();
-                // console.log(price);
-                // if(price > 12000)
-                //     trader.buy(1);
-                // console.log(await trader.getFees());
-
-                // await trader.sell(10);
-                // await trader.close();
                 await trader.buy(10);
                 await trader.buy(5);
                 await trader.sell(5);
@@ -45,7 +37,7 @@
                 await trader.sell(5);
                 await trader.sell(7);
 
-                this.performanceAnalyzer.evaluate();
+                this.logger.info(await this.performanceAnalyzer.getEvaluation());
                 // await trader.close();
             }
 		};
